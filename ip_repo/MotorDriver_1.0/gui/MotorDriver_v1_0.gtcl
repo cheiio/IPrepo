@@ -1,0 +1,2 @@
+# This file is automatically written.  Do not modify.
+proc gen_USERPARAMETER_pwm_freq_ENABLEMENT {pwm_freq sys_clk } {expr $pwm_freq < $sys_clk/2}

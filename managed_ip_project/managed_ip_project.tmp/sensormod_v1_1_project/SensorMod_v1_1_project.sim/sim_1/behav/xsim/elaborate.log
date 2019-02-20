@@ -1,0 +1,27 @@
+Vivado Simulator 2018.2
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: C:/Xilinx/Vivado/2018.2/bin/unwrapped/win64.o/xelab.exe -wto 8c6c9ea6d2a847488c32d6ad9cdfc9b6 --incr --debug typical --relax --mt 2 -L xil_defaultlib -L secureip --snapshot testbench_behav xil_defaultlib.testbench -log elaborate.log 
+Using 2 slave threads.
+Starting static elaboration
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling package std.standard
+Compiling package std.textio
+Compiling package ieee.std_logic_1164
+Compiling package ieee.numeric_std
+Compiling package ieee.std_logic_arith
+Compiling package ieee.std_logic_unsigned
+Compiling package xil_defaultlib.fpupack
+Compiling package xil_defaultlib.entities
+Compiling architecture behavioral of entity xil_defaultlib.addsubfsm_v6 [addsubfsm_v6_default]
+Compiling architecture behavioral of entity xil_defaultlib.multiplierfsm_v2 [multiplierfsm_v2_default]
+Compiling architecture behavioral of entity xil_defaultlib.fixMul [fixmul_default]
+Compiling architecture behavioral of entity xil_defaultlib.divNR [divnr_default]
+Compiling architecture behavioral of entity xil_defaultlib.Filter_PosCurr_Mod [filter_poscurr_mod_default]
+Compiling architecture behavioral of entity xil_defaultlib.SensorMod [sensormod_default]
+Compiling architecture arch_imp of entity xil_defaultlib.SensorModule_IP_v1_0_S00_AXI [\SensorModule_IP_v1_0_S00_AXI(nu...]
+Compiling architecture arch_imp of entity xil_defaultlib.SensorModule_IP_v1_0 [\SensorModule_IP_v1_0(numberofmo...]
+Compiling architecture behavioral of entity xil_defaultlib.testbench
+Built simulation snapshot testbench_behav
