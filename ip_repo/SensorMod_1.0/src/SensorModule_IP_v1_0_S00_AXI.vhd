@@ -141,30 +141,33 @@ architecture arch_imp of SensorModule_IP_v1_0_S00_AXI is
 	signal axi_rresp	: std_logic_vector(1 downto 0);
 	signal axi_rvalid	: std_logic;
 
+	signal axi_wdata	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+
 	-- Example-specific design signals
 	-- REG_ADDR is where the io register are located
 	-- STATUS_ADDR_B is the bit reserved for the status
 	-- IOREG_ADDR_B is the bit reserved for read or write register
-    constant STATUS_ADDR_B : integer := 0;
+	constant STATUS_ADDR_B : integer := 0;
 	constant REG_ADDR_LSB  : integer := 1;
 	constant REG_ADDR_SIZE : integer := 2;
 	constant MOD_ADDR_LSB  : integer := 3;
 	constant MOD_ADDR_SIZE : integer := 3;
-    constant IOREG_ADDR_LSB  : integer := 6;
-    constant IOREG_ADDR_SIZE  : integer := 2;
+	constant IOREG_ADDR_LSB  : integer := 6;
+	constant IOREG_ADDR_SIZE  : integer := 2;
     
 	------------------------------------------------
 	---- Signals for user logic register space example
 	--------------------------------------------------
-	signal status_reg          : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0) := (others => '0');
+	signal mod_addr_reg       : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0) := (others => '0');
+	signal status_reg         : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0) := (others => '0');
 	signal dt_reg             : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal R_reg              : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal center_current_reg  : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal Q_0_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal Q_12_reg           : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal Q_3_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal b01_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal a1_reg             : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal R_reg              : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal center_current_reg : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal Q_0_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal Q_12_reg           : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal Q_3_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal b01_reg            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal a1_reg             : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
     
 	signal slv_reg_rden	: std_logic;
 	signal slv_reg_wren	: std_logic;
@@ -172,26 +175,26 @@ architecture arch_imp of SensorModule_IP_v1_0_S00_AXI is
 	signal byte_index	: integer;
 	signal aw_en	: std_logic;
 
-    -- User Signals
-    signal rst : std_logic := '0';
-    signal sw_rst : std_logic := '0';
+	-- User Signals
+	signal rst : std_logic := '0';
+	signal sw_rst : std_logic := '0';
 --    signal busy_reg : std_logic := '0';
 --    signal ready_reg : std_logic := '0';
-    signal busy_status_reg, ready_status_reg : std_logic_vector(NumberOfModules-1 downto 0) ;
-    
-    signal START_SENSORMOD : std_logic_vector(NumberOfModules-1 downto 0) ;
-    signal my_busy         : std_logic_vector(NumberOfModules-1 downto 0) ;
-    signal ready_sDATA     : std_logic_vector(NumberOfModules-1 downto 0) ;
-    
-    type sensor_array is array (1 to NumberOfModules) of std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal my_positionSen : sensor_array := (others => (others => '0'));
-    signal my_voltsSen    : sensor_array := (others => (others => '0'));
-    signal my_currentSen  : sensor_array := (others => (others => '0'));
-    signal my_position    : sensor_array := (others => (others => '0'));
-    signal my_velocity    : sensor_array := (others => (others => '0'));
-    signal my_current     : sensor_array := (others => (others => '0'));
-    
-    signal cont_out : integer range 0 to 3 := 0;
+	signal busy_status_reg, ready_status_reg : std_logic_vector(NumberOfModules-1 downto 0) ;
+	
+	signal START_SENSORMOD : std_logic_vector(NumberOfModules-1 downto 0) ;
+	signal my_busy         : std_logic_vector(NumberOfModules-1 downto 0) ;
+	signal ready_sDATA     : std_logic_vector(NumberOfModules-1 downto 0) ;
+	
+	type sensor_array is array (1 to NumberOfModules) of std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal my_positionSen : sensor_array := (others => (others => '0'));
+	signal my_voltsSen    : sensor_array := (others => (others => '0'));
+	signal my_currentSen  : sensor_array := (others => (others => '0'));
+	signal my_position    : sensor_array := (others => (others => '0'));
+	signal my_velocity    : sensor_array := (others => (others => '0'));
+	signal my_current     : sensor_array := (others => (others => '0'));
+	
+	signal cont_out : integer range 0 to 3 := 0;
         
 begin
 	-- I/O Connections assignments
@@ -243,7 +246,8 @@ begin
 	    else
 	      if (axi_awready = '0' and S_AXI_AWVALID = '1' and S_AXI_WVALID = '1' and aw_en = '1') then
 	        -- Write Address latching
-	        axi_awaddr <= S_AXI_AWADDR;
+					axi_awaddr <= S_AXI_AWADDR;
+					axi_wdata <= S_AXI_WDATA;
 	      end if;
 	    end if;
 	  end if;                   
@@ -281,71 +285,142 @@ begin
 	-- and the slave is ready to accept the write address and write data.
 	slv_reg_wren <= axi_wready and S_AXI_WVALID and axi_awready and S_AXI_AWVALID ;
 	process (S_AXI_ACLK)
-	variable reg_addr    : integer range 0 to 3; 
-	variable mod_addr    : integer range 0 to 7;
-	variable confreg_addr  : std_logic_vector (IOREG_ADDR_SIZE - 1 downto 0); 
-    variable status_addr : std_logic;
-    begin
+		variable mod_addr :integer range 0 to 7;
+		variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0); 
+		begin
 	  if rising_edge(S_AXI_ACLK) then 
 	    if S_AXI_ARESETN = '0' then
 	      my_positionSen   <= (others => (others => '0'));
 	      my_voltsSen      <= (others => (others => '0'));
 	      my_currentSen    <= (others => (others => '0')); 
 	      dt_reg <= "00111011101000111101011100000000";   -- dt = 0.005 
-          R_reg <= "00111010010110001011100011100000";    -- R = 8.2673e-04 
-          center_current_reg <= "01000111000011101000011000100000";   -- 36486.206
-          Q_0_reg <= "00110000000000001101100101000000";    -- (nQ*dt^4)/4  
-          Q_12_reg <= "00110100010010010101001110000000";    -- (nQ*dt^3)/2 
-          Q_3_reg <= "00111000100111010100100101000000";    --  nQ*dt 
-          b01_reg <= "00111100111000010100011110100000";    --  0.0275 
-          a1_reg <= "10111111011100011110101110000000";    --  -0.9450
-          sw_rst <= '0';
+				R_reg <= "00111010010110001011100011100000";    -- R = 8.2673e-04 
+				center_current_reg <= "01000111000011101000011000100000";   -- 36486.206
+				Q_0_reg <= "00110000000000001101100101000000";    -- (nQ*dt^4)/4  
+				Q_12_reg <= "00110100010010010101001110000000";    -- (nQ*dt^3)/2 
+				Q_3_reg <= "00111000100111010100100101000000";    --  nQ*dt 
+				b01_reg <= "00111100111000010100011110100000";    --  0.0275 
+				a1_reg <= "10111111011100011110101110000000";    --  -0.9450
+				sw_rst <= '0';
 	      cont_out <= 0;
-        else
-	      reg_addr := to_integer(unsigned(axi_awaddr(REG_ADDR_SIZE + REG_ADDR_LSB - 1 downto REG_ADDR_LSB)));
-	      mod_addr := to_integer(unsigned(axi_awaddr(MOD_ADDR_SIZE + MOD_ADDR_LSB - 1 downto MOD_ADDR_LSB)));
-	      confreg_addr := axi_awaddr(IOREG_ADDR_SIZE + IOREG_ADDR_LSB-1 downto IOREG_ADDR_LSB);
-	      status_addr := axi_awaddr(STATUS_ADDR_B);
-	      if (slv_reg_wren = '1') then
-            if (mod_addr <= NumberOfModules and confreg_addr = "01" and status_addr = '0') then
-              case reg_addr is
-              when 1 => my_positionSen(mod_addr) <= S_AXI_WDATA; cont_out <= cont_out + 1;
-              when 2 => my_currentSen(mod_addr) <= S_AXI_WDATA; cont_out <= cont_out + 1;
-              when 3 => my_voltsSen(mod_addr) <= S_AXI_WDATA; cont_out <= cont_out + 1;
-              when others =>
-                my_positionSen <= my_positionSen;
-                my_voltsSen <= my_voltsSen;
-                my_currentSen <= my_currentSen;
-              end case;
-            elsif (confreg_addr = "10" and status_addr = '0' and reg_addr=0) then
-              case mod_addr is
-              when 0 => dt_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 1 => R_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 2 => center_current_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 3 => Q_0_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 4 => Q_12_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 5 => Q_3_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 6 => b01_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when 7 => a1_reg <= S_AXI_WDATA; sw_rst <= '1';
-              when others =>
-                dt_reg <= dt_reg;    
-                R_reg <= R_reg; 
-                center_current_reg <= center_current_reg;
-                Q_0_reg <= Q_0_reg;  
-                Q_12_reg <= Q_12_reg; 
-                Q_3_reg <= Q_3_reg; 
-                b01_reg <= b01_reg; 
-                a1_reg <= a1_reg;
-                sw_rst <= '0';
-              end case;
-            end if;
-          elsif cont_out = 3 then
-            cont_out <= 0; sw_rst <= '0';
-          else
-            sw_rst <= '0';
-          end if;
-        end if;
-      end if;            
+			else
+	      mod_addr := to_integer(unsigned(axi_wdata(MOD_ADDR_SIZE-1 downto 0)));
+				loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+				if (slv_reg_wren = '1') then
+	        case loc_addr is
+	          when b"0000" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- addr of module to be read registor 0
+	                mod_addr_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+	            end loop;
+	          when b"0001" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- dt registor 1
+	                dt_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0010" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- R registor 2
+	                R_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0011" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- center current registor 3
+	                center_current_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0100" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- Q0 registor 4
+	                Q_0_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0101" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+									-- Q1 and Q2 registor 5
+	                Q_12_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0110" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- Q3 registor 6
+	                Q_3_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"0111" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- b0 b1 registor 7
+	                b01_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"1000" =>
+	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	                -- Respective byte enables are asserted as per write strobes                   
+	                -- a1 registor 8
+	                a1_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	              end if;
+							end loop;
+							sw_rst <= '1'; -- reset module when configuring
+	          when b"1001" =>
+							-- slave registor 9
+							my_positionSen(mod_addr) <= S_AXI_WDATA;
+							cont_out <= cont_out + 1;
+	          when b"1010" =>
+							-- slave registor 10
+							my_currentSen(mod_addr) <= S_AXI_WDATA;
+							cont_out <= cont_out + 1;
+	          when b"1011" =>
+							-- slave registor 11
+							my_voltsSen(mod_addr) <= S_AXI_WDATA;
+							cont_out <= cont_out + 1;
+	          when others =>
+							my_positionSen <= my_positionSen;
+							my_voltsSen <= my_voltsSen;
+							my_currentSen <= my_currentSen;
+							dt_reg <= dt_reg;    
+							R_reg <= R_reg; 
+							center_current_reg <= center_current_reg;
+							Q_0_reg <= Q_0_reg;  
+							Q_12_reg <= Q_12_reg; 
+							Q_3_reg <= Q_3_reg; 
+							b01_reg <= b01_reg; 
+							a1_reg <= a1_reg;
+							sw_rst <= '0'; cont_out <= 0;
+					end case;
+				elsif cont_out = 3 then
+					cont_out <= 0; sw_rst <= '0';
+				else
+					sw_rst <= '0';
+	      end if;
+			end if;
+		end if;            
 	end process; 
 
 	-- Implement write response logic generation
@@ -429,50 +504,40 @@ begin
 
 	process (my_positionSen, my_voltsSen, my_currentSen, my_position, my_velocity, my_current, axi_araddr, S_AXI_ARESETN, slv_reg_rden,
 	   status_reg, dt_reg, R_reg, center_current_reg, Q_0_reg, Q_12_reg, Q_3_reg, b01_reg, a1_reg)
-	variable reg_addr    : integer range 0 to 3; 
-    variable mod_addr    : integer range 0 to 7; 
-    variable confreg_addr :  std_logic_vector (IOREG_ADDR_SIZE - 1 downto 0); 
-    variable status_addr : std_logic;
-	begin
-	    -- Address decoding for reading registers
-	    reg_addr := to_integer(unsigned(axi_araddr(REG_ADDR_SIZE + REG_ADDR_LSB - 1 downto REG_ADDR_LSB)));
-        mod_addr := to_integer(unsigned(axi_araddr(MOD_ADDR_SIZE + MOD_ADDR_LSB - 1 downto MOD_ADDR_LSB)));
-        confreg_addr := axi_araddr(IOREG_ADDR_SIZE + IOREG_ADDR_LSB-1 downto IOREG_ADDR_LSB);
-        status_addr := axi_araddr(STATUS_ADDR_B);
-        
-      if (mod_addr <= NumberOfModules and status_addr = '0') then
-        if (confreg_addr = "01") then
-            case reg_addr is
-            when 1 => reg_data_out <= my_positionSen(mod_addr);
-            when 2 => reg_data_out <= my_currentSen(mod_addr);
-            when 3 => reg_data_out <= my_voltsSen(mod_addr);
-            when others => reg_data_out  <= (others => '1');
-            end case;
-        elsif (confreg_addr = "00") then
-            case reg_addr is
-            when 1 => reg_data_out <= my_position(mod_addr);
-            when 2 => reg_data_out <= my_velocity(mod_addr);
-            when 3 => reg_data_out <= my_current(mod_addr);
-            when others => reg_data_out  <= (others => '1');
-            end case;
-        end if;
-      elsif (confreg_addr = "10" and reg_addr = 0 and status_addr = '0') then
-        case mod_addr is
-        when 0 => reg_data_out <= dt_reg;    
-        when 1 => reg_data_out <= R_reg; 
-        when 2 => reg_data_out <= center_current_reg;
-        when 3 => reg_data_out <= Q_0_reg;  
-        when 4 => reg_data_out <= Q_12_reg; 
-        when 5 => reg_data_out <= Q_3_reg; 
-        when 6 => reg_data_out <= b01_reg; 
-        when 7 => reg_data_out <= a1_reg;
-        when others => reg_data_out  <= (others => '1');
-        end case;
-      elsif (status_addr = '1' and mod_addr = 0 and reg_addr = 0) then
-        reg_data_out <= status_reg;
-      else 
-        reg_data_out <= (others => '1');
-      end if;
+		variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
+		variable mod_addr    : integer range 0 to 7; 
+		begin
+			-- Address decoding for reading registers
+			loc_addr := axi_araddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+			mod_addr := to_integer(unsigned(mod_addr_reg(MOD_ADDR_SIZE-1 downto 0)));
+			case loc_addr is
+				when b"0000" =>
+					reg_data_out <= status_reg;
+				when b"0001" =>
+					reg_data_out <= dt_reg;
+				when b"0010" =>
+					reg_data_out <= R_reg;
+				when b"0011" =>
+					reg_data_out <= center_current_reg;
+				when b"0100" =>
+					reg_data_out <= Q_0_reg;
+				when b"0101" =>
+					reg_data_out <= Q_12_reg;
+				when b"0110" =>
+					reg_data_out <= Q_3_reg;
+				when b"0111" =>
+					reg_data_out <= b01_reg;
+				when b"1000" =>
+					reg_data_out <= a1_reg;
+				when b"1001" =>
+					reg_data_out <= my_position(mod_addr);
+				when b"1010" =>
+					reg_data_out <= my_velocity(mod_addr);
+				when b"1011" =>
+					reg_data_out <= my_current(mod_addr);
+				when others =>
+					reg_data_out  <= (others => '0');
+			end case;
 	end process; 
 
 	-- Output register or memory read data
@@ -494,82 +559,85 @@ begin
 	end process;
 
 	-- Add user logic here
-    busy     <= or_reduct(my_busy);
-    ready    <= or_reduct(ready_sDATA);    
-    rst <= not(S_AXI_ARESETN) or sw_rst;
+	busy     <= or_reduct(my_busy);
+	ready    <= or_reduct(ready_sDATA);    
+	rst <= not(S_AXI_ARESETN) or sw_rst;
 
-    sensorMod_gen: for i in 1 to NumberOfModules generate
-        sensorMod_utt : 
-        SensorMod port map(
-            clk => S_AXI_ACLK,
-            rst => rst,
-            start => START_SENSORMOD(i-1),
-            positionSen =>  my_positionSen(i),
-            currentSen =>   my_currentSen(i),
-            volts =>        my_voltsSen(i),
-            
-            busy => my_busy(i-1),
-            ready => ready_sDATA(i-1),
-            
-            position =>     my_position(i),
-            velocity  =>    my_velocity(i),
-            current  =>     my_current(i),
-            
-            dt_conf  => dt_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            R_conf => R_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            center_current_conf => center_current_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            Q_0_conf => Q_0_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            Q_12_conf => Q_12_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            Q_3_conf => Q_3_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            b01_conf => b01_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
-            a1_conf => a1_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH)            );
-    end generate;
+	sensorMod_gen: for i in 1 to NumberOfModules generate
+		sensorMod_utt : 
+		SensorMod port map(
+				clk => S_AXI_ACLK,
+				rst => rst,
+				start => START_SENSORMOD(i-1),
+				positionSen =>  my_positionSen(i),
+				currentSen =>   my_currentSen(i),
+				volts =>        my_voltsSen(i),
+				
+				busy => my_busy(i-1),
+				ready => ready_sDATA(i-1),
+				
+				position =>     my_position(i),
+				velocity  =>    my_velocity(i),
+				current  =>     my_current(i),
+				
+				dt_conf  => dt_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				R_conf => R_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				center_current_conf => center_current_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				Q_0_conf => Q_0_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				Q_12_conf => Q_12_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				Q_3_conf => Q_3_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				b01_conf => b01_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH),
+				a1_conf => a1_reg(C_S_AXI_DATA_WIDTH-1 downto C_S_AXI_DATA_WIDTH - FP_WIDTH)            );
+	end generate;
     
-    process(S_AXI_ACLK)
-    variable cont_mod : integer range 0 to NumberOfModules-1 := 0;
-    begin
-      if(rising_edge(S_AXI_ACLK))then
-            if(S_AXI_ARESETN ='0')then
-              status_reg <= (others => '0');
-              busy_status_reg <= (others => '0');
-              ready_status_reg <= (others => '0');
-              START_SENSORMOD <= (others => '0');
-              cont_mod := 0;
+	process(S_AXI_ACLK)
+	variable cont_mod : integer range 0 to NumberOfModules-1 := 0;
+	variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
+	begin
+		if(rising_edge(S_AXI_ACLK))then
+			if(S_AXI_ARESETN ='0')then
+				status_reg <= (others => '0');
+				busy_status_reg <= (others => '0');
+				ready_status_reg <= (others => '0');
+				START_SENSORMOD <= (others => '0');
+				cont_mod := 0;
 --              ready_reg <= '0';
 --              busy_reg <= '0';
-            else
-              if (cont_out = 3 and cont_mod < NumberOfModules) then
-                  START_SENSORMOD(cont_mod) <= '1';
-                  if NumberOfModules > 1 then
-                    cont_mod := cont_mod + 1;
-                  end if;
-              elsif (cont_mod >= NumberOfModules) then
-                cont_mod := 0;
-                START_SENSORMOD <=  (others => '0');
-              else
-                START_SENSORMOD <= (others => '0');
-              end if;--  0 -  1  reserved
-              
-              --  2 - 15  busy_reg
-              -- 16 - 29  ready_reg
-              busy_status_reg <= my_busy;
-              if ( unsigned(ready_sDATA) > 0 ) then
-                ready_status_reg <= ready_status_reg or ready_sDATA;
-              elsif (slv_reg_rden = '1') then 
-                ready_status_reg <= (others => '0');
-              end if;
-              
-              status_reg(NumberOfModules + 2-1  downto  2) <= busy_status_reg;
-              status_reg(NumberOfModules + 16-1 downto 16) <= ready_status_reg;      
-              
-              if NumberOfModules = 1 then
-                position <= my_position(1);
-                velocity <= my_velocity(1);
-                current  <= my_current(1);
-              end if;
-            end if;
-          end if;
-    end process;
+			else
+				loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+				
+				if (cont_out = 3 and cont_mod < NumberOfModules) then
+					START_SENSORMOD(cont_mod) <= '1';
+					if NumberOfModules > 1 then
+						cont_mod := cont_mod + 1;
+					end if;
+				elsif (cont_mod >= NumberOfModules) then
+					cont_mod := 0;
+					START_SENSORMOD <=  (others => '0');
+				else
+					START_SENSORMOD <= (others => '0');
+				end if;--  0 -  1  reserved
+				
+				--  2 - 15  busy_reg
+				-- 16 - 29  ready_reg
+				busy_status_reg <= my_busy;
+				if ( unsigned(ready_sDATA) > 0 ) then
+					ready_status_reg <= ready_status_reg or ready_sDATA;
+				elsif (slv_reg_wren = '1' and loc_addr = b"0000" ) then 
+					ready_status_reg <= (others => '0');
+				end if;
+				
+				status_reg(NumberOfModules + 2-1  downto  2) <= busy_status_reg;
+				status_reg(NumberOfModules + 16-1 downto 16) <= ready_status_reg;      
+				
+				if NumberOfModules = 1 then
+					position <= my_position(1);
+					velocity <= my_velocity(1);
+					current  <= my_current(1);
+				end if;
+			end if;
+		end if;
+	end process;
 
 	-- User logic ends
 
