@@ -143,6 +143,14 @@ architecture arch_imp of SensorModule_IP_v1_0_S00_AXI is
 
 	signal axi_wdata	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 
+    -- Example-specific design signals
+	-- local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
+	-- ADDR_LSB is used for addressing 32/64 bit registers/memories
+	-- ADDR_LSB = 2 for 32 bits (n downto 2)
+	-- ADDR_LSB = 3 for 64 bits (n downto 3)
+	constant ADDR_LSB  : integer := (C_S_AXI_DATA_WIDTH/32)+ 1;
+	constant OPT_MEM_ADDR_BITS : integer := 3;
+	
 	-- Example-specific design signals
 	-- REG_ADDR is where the io register are located
 	-- STATUS_ADDR_B is the bit reserved for the status
@@ -290,138 +298,138 @@ begin
 		begin
 	  if rising_edge(S_AXI_ACLK) then 
 	    if S_AXI_ARESETN = '0' then
-	      my_positionSen   <= (others => (others => '0'));
-	      my_voltsSen      <= (others => (others => '0'));
-	      my_currentSen    <= (others => (others => '0')); 
-	      dt_reg <= "00111011101000111101011100000000";   -- dt = 0.005 
-				R_reg <= "00111010010110001011100011100000";    -- R = 8.2673e-04 
-				center_current_reg <= "01000111000011101000011000100000";   -- 36486.206
-				Q_0_reg <= "00110000000000001101100101000000";    -- (nQ*dt^4)/4  
-				Q_12_reg <= "00110100010010010101001110000000";    -- (nQ*dt^3)/2 
-				Q_3_reg <= "00111000100111010100100101000000";    --  nQ*dt 
-				b01_reg <= "00111100111000010100011110100000";    --  0.0275 
-				a1_reg <= "10111111011100011110101110000000";    --  -0.9450
-				sw_rst <= '0';
-	      cont_out <= 0;
-			else
-	      mod_addr := to_integer(unsigned(axi_wdata(MOD_ADDR_SIZE-1 downto 0)));
-				loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
-				if (slv_reg_wren = '1') then
-	        case loc_addr is
-	          when b"0000" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- addr of module to be read registor 0
-	                mod_addr_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-	            end loop;
-	          when b"0001" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- dt registor 1
-	                dt_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0010" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- R registor 2
-	                R_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0011" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- center current registor 3
-	                center_current_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0100" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- Q0 registor 4
-	                Q_0_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0101" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-									-- Q1 and Q2 registor 5
-	                Q_12_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0110" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- Q3 registor 6
-	                Q_3_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"0111" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- b0 b1 registor 7
-	                b01_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"1000" =>
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
-	                -- Respective byte enables are asserted as per write strobes                   
-	                -- a1 registor 8
-	                a1_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	              end if;
-							end loop;
-							sw_rst <= '1'; -- reset module when configuring
-	          when b"1001" =>
-							-- slave registor 9
-							my_positionSen(mod_addr) <= S_AXI_WDATA;
-							cont_out <= cont_out + 1;
-	          when b"1010" =>
-							-- slave registor 10
-							my_currentSen(mod_addr) <= S_AXI_WDATA;
-							cont_out <= cont_out + 1;
-	          when b"1011" =>
-							-- slave registor 11
-							my_voltsSen(mod_addr) <= S_AXI_WDATA;
-							cont_out <= cont_out + 1;
-	          when others =>
-							my_positionSen <= my_positionSen;
-							my_voltsSen <= my_voltsSen;
-							my_currentSen <= my_currentSen;
-							dt_reg <= dt_reg;    
-							R_reg <= R_reg; 
-							center_current_reg <= center_current_reg;
-							Q_0_reg <= Q_0_reg;  
-							Q_12_reg <= Q_12_reg; 
-							Q_3_reg <= Q_3_reg; 
-							b01_reg <= b01_reg; 
-							a1_reg <= a1_reg;
-							sw_rst <= '0'; cont_out <= 0;
-					end case;
-				elsif cont_out = 3 then
-					cont_out <= 0; sw_rst <= '0';
-				else
-					sw_rst <= '0';
-	      end if;
-			end if;
-		end if;            
-	end process; 
+            my_positionSen   <= (others => (others => '0'));
+            my_voltsSen      <= (others => (others => '0'));
+            my_currentSen    <= (others => (others => '0')); 
+            dt_reg              <= "00111011101000111101011100000000";   -- dt = 0.005 
+            R_reg               <= "00111010010110001011100011100000";    -- R = 8.2673e-04 
+            center_current_reg  <= "01000111000011101000011000100000";   -- 36486.206
+            Q_0_reg             <= "00110000000000001101100101000000";    -- (nQ*dt^4)/4  
+            Q_12_reg            <= "00110100010010010101001110000000";    -- (nQ*dt^3)/2 
+            Q_3_reg             <= "00111000100111010100100101000000";    --  nQ*dt 
+            b01_reg             <= "00111100111000010100011110100000";    --  0.0275 
+            a1_reg              <= "10111111011100011110101110000000";    --  -0.9450
+            sw_rst <= '0';
+            cont_out <= 0;
+        else
+            mod_addr := to_integer(unsigned(axi_wdata(MOD_ADDR_SIZE-1 downto 0)));
+            loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+            if (slv_reg_wren = '1') then
+                case loc_addr is
+                  when b"0000" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- addr of module to be read registor 0
+                        mod_addr_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                when b"0001" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- dt registor 1
+                        dt_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0010" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- R registor 2
+                        R_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0011" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- center current registor 3
+                        center_current_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0100" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- Q0 registor 4
+                        Q_0_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0101" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                                        -- Q1 and Q2 registor 5
+                        Q_12_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0110" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- Q3 registor 6
+                        Q_3_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"0111" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- b0 b1 registor 7
+                        b01_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"1000" =>
+                    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+                      if ( S_AXI_WSTRB(byte_index) = '1' ) then
+                        -- Respective byte enables are asserted as per write strobes                   
+                        -- a1 registor 8
+                        a1_reg(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+                      end if;
+                    end loop;
+                    sw_rst <= '1'; -- reset module when configuring
+                when b"1001" =>
+                    -- slave registor 9
+                    my_positionSen(mod_addr) <= S_AXI_WDATA;
+                    cont_out <= cont_out + 1;
+                when b"1010" =>
+                    -- slave registor 10
+                    my_currentSen(mod_addr) <= S_AXI_WDATA;
+                    cont_out <= cont_out + 1;
+                when b"1011" =>
+                    -- slave registor 11
+                    my_voltsSen(mod_addr) <= S_AXI_WDATA;
+                    cont_out <= cont_out + 1;
+                when others =>
+                    my_positionSen <= my_positionSen;
+                    my_voltsSen <= my_voltsSen;
+                    my_currentSen <= my_currentSen;
+                    dt_reg <= dt_reg;    
+                    R_reg <= R_reg; 
+                    center_current_reg <= center_current_reg;
+                    Q_0_reg <= Q_0_reg;  
+                    Q_12_reg <= Q_12_reg; 
+                    Q_3_reg <= Q_3_reg; 
+                    b01_reg <= b01_reg; 
+                    a1_reg <= a1_reg;
+                    sw_rst <= '0'; cont_out <= 0;
+                end case;
+        elsif cont_out = 3 then
+            cont_out <= 0; sw_rst <= '0';
+        else
+            sw_rst <= '0';
+        end if;
+        end if;
+    end if;            
+end process; 
 
 	-- Implement write response logic generation
 	-- The write response and response valid signals are asserted by the slave 

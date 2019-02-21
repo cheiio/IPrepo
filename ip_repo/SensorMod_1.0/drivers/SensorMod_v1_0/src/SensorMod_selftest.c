@@ -4,6 +4,7 @@
 #include "xparameters.h"
 #include "stdio.h"
 #include "xil_io.h"
+#include "xstatus.h"
 
 /************************** Constant Definitions ***************************/
 #define READ_WRITE_MUL_FACTOR 0x10
