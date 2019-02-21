@@ -14,7 +14,7 @@ entity SensorModule_IP_v1_0_S00_AXI is
 		-- Width of S_AXI data bus
 		C_S_AXI_DATA_WIDTH	: integer	:= 32;
 		-- Width of S_AXI address bus
-		C_S_AXI_ADDR_WIDTH	: integer	:= 8
+		C_S_AXI_ADDR_WIDTH	: integer	:= 6
 	);
 	port (
 		-- Users to add ports here
